@@ -6,11 +6,12 @@ namespace Buddy\Repman\Tests\Unit\Service\Security;
 
 use Buddy\Repman\Service\Security\SecurityChecker\SensioLabsSecurityChecker;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
-final class SensioLabsSecurityCheckerTest extends TestCase
+final class SensioLabsSecurityCheckerTest extends KernelTestCase
 {
     private SensioLabsSecurityChecker $checker;
     private string $dbDir;
@@ -19,8 +20,9 @@ final class SensioLabsSecurityCheckerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dbDir = sys_get_temp_dir().'/repman/security-advisories';
-        $this->repoDir = sys_get_temp_dir().'/repman/security-advisories-repo';
+        self::bootKernel();
+        $this->dbDir = self::$kernel->getProjectDir() . '/var/security-advisories';
+        $this->repoDir = self::$kernel->getProjectDir() . '/var/security-advisories-repo';
         $this->filesystem = new Filesystem();
 
         $this->checker = new SensioLabsSecurityChecker($this->dbDir, 'file://'.$this->repoDir);
@@ -148,13 +150,33 @@ final class SensioLabsSecurityCheckerTest extends TestCase
     private function createAdvisoriesDatabaseRepo(): void
     {
         $this->filesystem->mkdir($this->repoDir);
-        (new Process(['git', 'init', '--initial-branch=master'], $this->repoDir))->run();
+        (new Process(['git', 'init', '--initial-branch', 'master'], $this->repoDir))->run();
         $this->filesystem->mirror(
             __DIR__.'/../../../Resources/fixtures/security/security-advisories',
             $this->repoDir
         );
-        (new Process(['git', 'add', '.'], $this->repoDir))->run();
-        (new Process(['git', '-c', 'commit.gpgsign=false', 'commit', '-a', '-m', 'AD repo'], $this->repoDir))->run();
+
+        $commands = [
+            ['git', 'add', '-A'],
+            ['git', '-c', 'commit.gpgsign=false', 'commit', '-a', '-m', 'Add repo']
+        ];
+
+        foreach ($commands as $commnand) {
+            $this->runCommand($commnand);
+        }
+    }
+
+    /** @param string[] $command */
+    private function runCommand(array $command): void
+    {
+        ($proc = new Process($command, $this->repoDir))->run();
+        if ($proc->getExitCode() > 0) {
+            throw new \RuntimeException(sprintf(
+                'Commands \'%s\' failed with exit code %d',
+                $proc->getCommandLine(),
+                $proc->getExitCode()
+            ));
+        }
     }
 
     private function synchronizeAdvisoriesDatabase(): void

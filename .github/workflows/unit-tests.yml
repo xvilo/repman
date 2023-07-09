@@ -42,6 +42,16 @@ jobs:
               id: composer-cache
               run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
+            # Without this step `git add .` command will result in exit code 128.
+            # This ensures the comitter info is set, for now prefil with some exiting
+            # variables in GitHub actions.
+
+            - name: Set committer info
+              id: committer-info
+              run: |
+                  git config --global user.email ${GITHUB_ACTOR_ID}+actor_id@noreply.github.com
+                  git config --global user.name $GITHUB_ACTOR
+
             - name: Cache composer dependencies
               uses: actions/cache@v3
               with:
