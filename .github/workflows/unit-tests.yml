@@ -2,7 +2,7 @@ name: Ci suite
 on: [push, pull_request]
 jobs:
     symfony:
-        name: Symfony (PHP ${{ matrix.php-versions }})
+        name: PHPUnit tests (PHP ${{ matrix.php-versions }})
         runs-on: ubuntu-latest
 
         # Docs: https://docs.github.com/en/actions/using-containerized-services
