@@ -59,6 +59,7 @@ jobs:
                   composer require --dev symfony/orm-pack
                   php bin/console doctrine:schema:update --force || echo "No migrations found or schema update failed"
                   php bin/console doctrine:migrations:migrate || echo "No migrations found or migration failed"
+                  php bin/console messenger:setup-transports || echo "No transports configured or setup failed"
               env:
                   DATABASE_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/postgres?charset=UTF-8
 
